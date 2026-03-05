@@ -359,7 +359,7 @@
       </div>
       <div class="feature">
         <span class="icon">⚡</span>
-        <h3>15 Tools</h3>
+        <h3>18 Tools</h3>
         <p>Navigate, click, type, hover, focus, select, scroll, press keys, screenshot, eval JS, export PDF, extract text.</p>
       </div>
     </div>
@@ -428,20 +428,23 @@
       <thead><tr><th>Tool</th><th>Description</th></tr></thead>
       <tbody>
         <tr><td>pinchtab_list_instances</td><td>List all open browser instances</td></tr>
-        <tr><td>pinchtab_navigate</td><td>Navigate to a URL</td></tr>
+        <tr><td>pinchtab_navigate</td><td>Navigate to a URL — optionally open in new tab</td></tr>
         <tr><td>pinchtab_snapshot</td><td>Get accessibility tree with element refs. Supports filter, compact format, diff mode</td></tr>
         <tr><td>pinchtab_screenshot</td><td>Take a page screenshot (base64 JPEG)</td></tr>
         <tr><td>pinchtab_click</td><td>Click element by ref — real mouse events by default</td></tr>
         <tr><td>pinchtab_type</td><td>Type text into input — human-like keystrokes by default</td></tr>
-        <tr><td>pinchtab_press</td><td>Press keyboard key (Enter, Tab, Escape, ArrowDown, …)</td></tr>
+        <tr><td>pinchtab_press</td><td>Press keyboard key — optionally on a specific element</td></tr>
         <tr><td>pinchtab_hover</td><td>Hover over element — reveal tooltips, dropdowns</td></tr>
         <tr><td>pinchtab_focus</td><td>Focus element — trigger autocomplete, focus-dependent UI</td></tr>
         <tr><td>pinchtab_select</td><td>Select option in a dropdown by value or visible text</td></tr>
-        <tr><td>pinchtab_scroll</td><td>Scroll page up or down</td></tr>
+        <tr><td>pinchtab_scroll</td><td>Scroll page or element in any direction</td></tr>
         <tr><td>pinchtab_wait</td><td>Wait N seconds (1-30, default 3)</td></tr>
         <tr><td>pinchtab_get_text</td><td>Get readable page text (~800 tokens)</td></tr>
         <tr><td>pinchtab_eval</td><td>Execute JavaScript in page context</td></tr>
         <tr><td>pinchtab_pdf</td><td>Export current page as PDF</td></tr>
+        <tr><td>pinchtab_close_tab</td><td>Close current or specific tab by ID</td></tr>
+        <tr><td>pinchtab_cookies</td><td>Get all cookies for the current page</td></tr>
+        <tr><td>pinchtab_health</td><td>Check if PinchTab server is running</td></tr>
       </tbody>
     </table>
   </section>

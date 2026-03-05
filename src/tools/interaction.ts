@@ -75,20 +75,21 @@ export function registerInteractionTools(server: McpServer) {
     "pinchtab_press",
     {
       description:
-        "Press a keyboard key (e.g. 'Enter', 'Tab', 'Escape', 'ArrowDown'). Useful for form submission, navigation, etc.",
+        "Press a keyboard key (e.g. 'Enter', 'Tab', 'Escape', 'ArrowDown'). Optionally target a specific element.",
       inputSchema: z.object({
         key: z.string().describe("Key to press (e.g. 'Enter', 'Tab', 'Escape')"),
+        ref: z
+          .string()
+          .optional()
+          .describe("Element ref to focus before pressing the key (e.g. 'e5')."),
       }),
       title: "Press Key",
     },
-    async ({ key }) => {
+    async ({ key, ref }) => {
       try {
-        return toolResult(
-          await pinch("POST", "/action", {
-            key,
-            kind: "press",
-          }),
-        );
+        const body: Record<string, unknown> = { key, kind: "press" };
+        if (ref) body.ref = ref;
+        return toolResult(await pinch("POST", "/action", body));
       } catch (error) {
         return toolError(error);
       }

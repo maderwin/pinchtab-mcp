@@ -35,6 +35,89 @@ describe("instance tools", () => {
     registerInstanceTools(server);
   });
 
+  describe("pinchtab_close_tab", () => {
+    it("calls POST /tab with close action", async () => {
+      mockPinch.mockResolvedValueOnce({ ok: true });
+
+      const handler = getToolHandler(server, "pinchtab_close_tab");
+      await handler({});
+
+      expect(mockPinch).toHaveBeenCalledWith("POST", "/tab", { action: "close" });
+    });
+
+    it("includes tabId when provided", async () => {
+      mockPinch.mockResolvedValueOnce({ ok: true });
+
+      const handler = getToolHandler(server, "pinchtab_close_tab");
+      await handler({ tabId: "tab-123" });
+
+      expect(mockPinch).toHaveBeenCalledWith("POST", "/tab", {
+        action: "close",
+        tabId: "tab-123",
+      });
+    });
+
+    it("returns isError on failure", async () => {
+      mockPinch.mockRejectedValueOnce(new Error("no such tab"));
+
+      const handler = getToolHandler(server, "pinchtab_close_tab");
+      const result = await handler({});
+
+      expect(result.isError).toBeTruthy();
+      expect(result.content[0].text).toContain("no such tab");
+    });
+  });
+
+  describe("pinchtab_cookies", () => {
+    it("calls GET /cookies", async () => {
+      mockPinch.mockResolvedValueOnce([{ name: "sid", value: "abc" }]);
+
+      const handler = getToolHandler(server, "pinchtab_cookies");
+      await handler({});
+
+      expect(mockPinch).toHaveBeenCalledWith("GET", "/cookies");
+    });
+
+    it("returns cookies as JSON text", async () => {
+      mockPinch.mockResolvedValueOnce([{ name: "sid", value: "abc" }]);
+
+      const handler = getToolHandler(server, "pinchtab_cookies");
+      const result = await handler({});
+
+      expect(result.content[0].text).toContain("sid");
+    });
+
+    it("returns isError on failure", async () => {
+      mockPinch.mockRejectedValueOnce(new Error("cookies failed"));
+
+      const handler = getToolHandler(server, "pinchtab_cookies");
+      const result = await handler({});
+
+      expect(result.isError).toBeTruthy();
+    });
+  });
+
+  describe("pinchtab_health", () => {
+    it("calls GET /health", async () => {
+      mockPinch.mockResolvedValueOnce({ status: "ok" });
+
+      const handler = getToolHandler(server, "pinchtab_health");
+      await handler({});
+
+      expect(mockPinch).toHaveBeenCalledWith("GET", "/health");
+    });
+
+    it("returns isError on failure", async () => {
+      mockPinch.mockRejectedValueOnce(new Error("not running"));
+
+      const handler = getToolHandler(server, "pinchtab_health");
+      const result = await handler({});
+
+      expect(result.isError).toBeTruthy();
+      expect(result.content[0].text).toContain("not running");
+    });
+  });
+
   describe("pinchtab_list_instances", () => {
     it("calls GET /tabs", async () => {
       mockPinch.mockResolvedValueOnce({ tabs: [] });

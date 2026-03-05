@@ -102,6 +102,18 @@ describe("pinchtab_navigate", () => {
     expect(result.content[0].text).toContain("Example");
   });
 
+  it("opens URL in new tab when newTab=true", async () => {
+    mockPinch.mockResolvedValueOnce({ ok: true });
+
+    const handler = getToolHandler(server, "pinchtab_navigate");
+    await handler({ newTab: true, url: "https://example.com" });
+
+    expect(mockPinch).toHaveBeenCalledWith("POST", "/tab", {
+      action: "new",
+      url: "https://example.com",
+    });
+  });
+
   it("returns isError on failure", async () => {
     mockPinch.mockRejectedValueOnce(new Error("timeout"));
 
@@ -212,6 +224,33 @@ describe("pinchtab_scroll", () => {
     expect(mockPinch).toHaveBeenCalledWith("POST", "/action", {
       amount: 200,
       direction: "up",
+      kind: "scroll",
+    });
+  });
+
+  it("includes ref when scrolling within an element", async () => {
+    mockPinch.mockResolvedValueOnce({ ok: true });
+
+    const handler = getToolHandler(server, "pinchtab_scroll");
+    await handler({ direction: "down", ref: "e10" });
+
+    expect(mockPinch).toHaveBeenCalledWith("POST", "/action", {
+      amount: 500,
+      direction: "down",
+      kind: "scroll",
+      ref: "e10",
+    });
+  });
+
+  it("supports left and right directions", async () => {
+    mockPinch.mockResolvedValueOnce({ ok: true });
+
+    const handler = getToolHandler(server, "pinchtab_scroll");
+    await handler({ amount: 300, direction: "left" });
+
+    expect(mockPinch).toHaveBeenCalledWith("POST", "/action", {
+      amount: 300,
+      direction: "left",
       kind: "scroll",
     });
   });

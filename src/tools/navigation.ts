@@ -15,12 +15,19 @@ export function registerNavigationTools(server: McpServer) {
       description:
         "Navigate the browser to a URL. Wait 3+ seconds after calling before taking a snapshot.",
       inputSchema: z.object({
+        newTab: z
+          .boolean()
+          .optional()
+          .describe("Open the URL in a new tab instead of navigating the current one."),
         url: z.string().describe("URL to navigate to"),
       }),
       title: "Navigate",
     },
-    async ({ url }) => {
+    async ({ url, newTab }) => {
       try {
+        if (newTab) {
+          return toolResult(await pinch("POST", "/tab", { action: "new", url }));
+        }
         return toolResult(await pinch("POST", "/navigate", { url }));
       } catch (error) {
         return toolError(error);
@@ -68,25 +75,29 @@ export function registerNavigationTools(server: McpServer) {
   server.registerTool(
     "pinchtab_scroll",
     {
-      description: "Scroll the page up or down by a specified amount.",
+      description: "Scroll the page or a specific element. Supports all four directions.",
       inputSchema: z.object({
         amount: z
           .number()
           .optional()
           .describe(`Scroll amount in pixels. Default: ${DEFAULT_SCROLL_PX}`),
-        direction: z.enum(["up", "down"]).describe("Scroll direction"),
+        direction: z.enum(["up", "down", "left", "right"]).describe("Scroll direction"),
+        ref: z
+          .string()
+          .optional()
+          .describe("Element ref to scroll within (e.g. 'e5'). If omitted, scrolls the page."),
       }),
       title: "Scroll",
     },
-    async ({ direction, amount }) => {
+    async ({ direction, amount, ref }) => {
       try {
-        return toolResult(
-          await pinch("POST", "/action", {
-            amount: amount ?? DEFAULT_SCROLL_PX,
-            direction,
-            kind: "scroll",
-          }),
-        );
+        const body: Record<string, unknown> = {
+          amount: amount ?? DEFAULT_SCROLL_PX,
+          direction,
+          kind: "scroll",
+        };
+        if (ref) body.ref = ref;
+        return toolResult(await pinch("POST", "/action", body));
       } catch (error) {
         return toolError(error);
       }

@@ -151,6 +151,19 @@ describe("interaction tools", () => {
         kind: "press",
       });
     });
+
+    it("includes ref when targeting a specific element", async () => {
+      mockPinch.mockResolvedValueOnce({ ok: true });
+
+      const handler = getToolHandler(server, "pinchtab_press");
+      await handler({ key: "Tab", ref: "e5" });
+
+      expect(mockPinch).toHaveBeenCalledWith("POST", "/action", {
+        key: "Tab",
+        kind: "press",
+        ref: "e5",
+      });
+    });
   });
 
   describe("pinchtab_hover", () => {
