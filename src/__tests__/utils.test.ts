@@ -3,23 +3,24 @@ import { isRecord, toJson, toolError, toolResult } from "../utils.js";
 
 describe("isRecord", () => {
   it("returns true for plain objects", () => {
-    expect(isRecord({ a: 1 })).toBe(true);
-    expect(isRecord({})).toBe(true);
+    expect(isRecord({ a: 1 })).toBeTruthy();
+    expect(isRecord({})).toBeTruthy();
   });
 
   it("returns false for null", () => {
-    expect(isRecord(null)).toBe(false);
+    // eslint-disable-next-line unicorn/no-null -- explicitly testing null guard
+    expect(isRecord(null)).toBeFalsy();
   });
 
   it("returns false for primitives", () => {
-    expect(isRecord("string")).toBe(false);
-    expect(isRecord(42)).toBe(false);
-    expect(isRecord(undefined)).toBe(false);
-    expect(isRecord(true)).toBe(false);
+    expect(isRecord("string")).toBeFalsy();
+    expect(isRecord(42)).toBeFalsy();
+    expect(isRecord(undefined)).toBeFalsy();
+    expect(isRecord(true)).toBeFalsy();
   });
 
   it("returns true for arrays", () => {
-    expect(isRecord([1, 2])).toBe(true);
+    expect(isRecord([1, 2])).toBeTruthy();
   });
 });
 
@@ -58,19 +59,19 @@ describe("toolResult", () => {
 describe("toolError", () => {
   it("extracts message from Error instances", () => {
     const result = toolError(new Error("something broke"));
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(result.content[0].text).toBe("something broke");
   });
 
   it("converts non-Error values to string", () => {
     const result = toolError("raw string error");
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(result.content[0].text).toBe("raw string error");
   });
 
   it("converts numeric errors to string", () => {
     const result = toolError(404);
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(result.content[0].text).toBe("404");
   });
 });

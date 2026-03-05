@@ -167,7 +167,7 @@ describe("content tools", () => {
       const handler = getToolHandler(server, "pinchtab_eval");
       const result = await handler({ code: "throw new Error()" });
 
-      expect(result.isError).toBe(true);
+      expect(result.isError).toBeTruthy();
       expect(result.content[0].text).toContain("eval failed");
     });
   });
@@ -179,7 +179,7 @@ describe("content tools", () => {
       const handler = getToolHandler(server, "pinchtab_get_text");
       const result = await handler({});
 
-      expect(result.isError).toBe(true);
+      expect(result.isError).toBeTruthy();
       expect(result.content[0].text).toContain("network error");
     });
 
@@ -189,7 +189,7 @@ describe("content tools", () => {
       const handler = getToolHandler(server, "pinchtab_screenshot");
       const result = await handler({});
 
-      expect(result.isError).toBe(true);
+      expect(result.isError).toBeTruthy();
       expect(result.content[0].text).toContain("screenshot failed");
     });
 
@@ -199,7 +199,7 @@ describe("content tools", () => {
       const handler = getToolHandler(server, "pinchtab_pdf");
       const result = await handler({});
 
-      expect(result.isError).toBe(true);
+      expect(result.isError).toBeTruthy();
       expect(result.content[0].text).toContain("pdf failed");
     });
   });

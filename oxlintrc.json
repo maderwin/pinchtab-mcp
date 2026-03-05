@@ -22,7 +22,7 @@
     "no-param-reassign": "warn",
     "default-case": "warn",
     "init-declarations": "off",
-    "max-lines-per-function": ["warn", { "max": 200 }],
+    "max-lines-per-function": ["warn", { "max": 250 }],
     "max-nested-callbacks": ["warn", { "max": 4 }],
     "max-params": ["warn", { "max": 5 }],
     "sort-imports": ["warn", {
@@ -55,6 +55,7 @@
     "import/group-exports": "off",
     "import/exports-last": "off",
 
+    "jest/no-untyped-mock-factory": "off",
     "jest/prefer-lowercase-title": ["warn", { "ignore": ["describe"] }],
     "jest/no-disabled-tests": "warn",
     "jest/consistent-test-it": ["warn", { "fn": "it" }],

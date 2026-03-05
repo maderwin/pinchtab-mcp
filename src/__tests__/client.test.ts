@@ -30,14 +30,14 @@ describe("pinch", () => {
       "fetch",
       vi.fn().mockResolvedValue({
         headers: new Headers({ "content-type": "application/json" }),
-        json: () => Promise.resolve({ data: "test" }),
+        json: async () => ({ data: "test" }),
         ok: true,
       }),
     );
 
     const { pinch } = await import("../pinchtab/client.js");
     const result = await pinch("GET", "/text");
-    expect(result).toEqual({ data: "test" });
+    expect(result).toStrictEqual({ data: "test" });
   });
 
   it("returns text when content-type is not JSON", async () => {
@@ -47,7 +47,7 @@ describe("pinch", () => {
       vi.fn().mockResolvedValue({
         headers: new Headers({ "content-type": "text/plain" }),
         ok: true,
-        text: () => Promise.resolve("plain text"),
+        text: async () => "plain text",
       }),
     );
 
@@ -63,7 +63,7 @@ describe("pinch", () => {
       vi.fn().mockResolvedValue({
         ok: false,
         status: 404,
-        text: () => Promise.resolve("Not Found"),
+        text: async () => "Not Found",
       }),
     );
 
@@ -80,21 +80,21 @@ describe("pinch", () => {
       "fetch",
       vi.fn().mockResolvedValue({
         headers: new Headers({ "content-type": "application/json" }),
-        json: () => Promise.resolve({}),
+        json: async () => ({}),
         ok: true,
       }),
     );
 
     const { pinch } = await import("../pinchtab/client.js");
     await pinch("GET", "/tabs");
-    expect(mockEnsurePinchtabRunning).toHaveBeenCalled();
+    expect(mockEnsurePinchtabRunning).toHaveBeenCalledOnce();
   });
 
   it("sends body as JSON for POST requests", async () => {
     mockIsPinchtabRunning.mockResolvedValue(true);
     const mockFetch = vi.fn().mockResolvedValue({
       headers: new Headers({ "content-type": "application/json" }),
-      json: () => Promise.resolve({ ok: true }),
+      json: async () => ({ ok: true }),
       ok: true,
     });
     vi.stubGlobal("fetch", mockFetch);
@@ -119,14 +119,14 @@ describe("pinch", () => {
         headers: new Headers({
           "content-type": "application/json; charset=utf-8",
         }),
-        json: () => Promise.resolve({ ok: true }),
+        json: async () => ({ ok: true }),
         ok: true,
       }),
     );
 
     const { pinch } = await import("../pinchtab/client.js");
     const result = await pinch("GET", "/health");
-    expect(result).toEqual({ ok: true });
+    expect(result).toStrictEqual({ ok: true });
   });
 
   it("wraps timeout errors with readable message", async () => {
@@ -158,12 +158,12 @@ describe("pinch", () => {
       PINCHTAB_URL: "http://127.0.0.1:9999",
     }));
     vi.doMock("../pinchtab/process.js", () => ({
-      ensurePinchtabRunning: () => Promise.resolve(),
-      isPinchtabRunning: () => Promise.resolve(true),
+      ensurePinchtabRunning: async () => {},
+      isPinchtabRunning: async () => true,
     }));
     const mockFetch = vi.fn().mockResolvedValue({
       headers: new Headers({ "content-type": "application/json" }),
-      json: () => Promise.resolve({}),
+      json: async () => ({}),
       ok: true,
     });
     vi.stubGlobal("fetch", mockFetch);
@@ -185,7 +185,7 @@ describe("pinch", () => {
     mockIsPinchtabRunning.mockResolvedValue(true);
     const mockFetch = vi.fn().mockResolvedValue({
       headers: new Headers({ "content-type": "application/json" }),
-      json: () => Promise.resolve([]),
+      json: async () => [],
       ok: true,
     });
     vi.stubGlobal("fetch", mockFetch);

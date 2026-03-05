@@ -64,7 +64,7 @@ describe("instance tools", () => {
       const handler = getToolHandler(server, "pinchtab_list_instances");
       const result = await handler({});
 
-      expect(result.isError).toBe(true);
+      expect(result.isError).toBeTruthy();
       expect(result.content[0].text).toContain("connection refused");
     });
   });

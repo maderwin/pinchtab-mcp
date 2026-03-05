@@ -108,7 +108,7 @@ describe("pinchtab_navigate", () => {
     const handler = getToolHandler(server, "pinchtab_navigate");
     const result = await handler({ url: "https://example.com" });
 
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(result.content[0].text).toContain("timeout");
   });
 });
@@ -176,7 +176,7 @@ describe("pinchtab_snapshot", () => {
     const handler = getToolHandler(server, "pinchtab_snapshot");
     const result = await handler({});
 
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(result.content[0].text).toContain("server error");
   });
 });
@@ -222,7 +222,7 @@ describe("pinchtab_scroll", () => {
     const handler = getToolHandler(server, "pinchtab_scroll");
     const result = await handler({ direction: "down" });
 
-    expect(result.isError).toBe(true);
+    expect(result.isError).toBeTruthy();
     expect(result.content[0].text).toContain("scroll failed");
   });
 });

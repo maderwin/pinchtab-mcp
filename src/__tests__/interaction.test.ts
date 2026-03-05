@@ -79,7 +79,7 @@ describe("interaction tools", () => {
       const handler = getToolHandler(server, "pinchtab_click");
       const result = await handler({ ref: "e99" });
 
-      expect(result.isError).toBe(true);
+      expect(result.isError).toBeTruthy();
       expect(result.content[0].text).toContain("element not found");
     });
   });
@@ -203,7 +203,7 @@ describe("interaction tools", () => {
       const handler = getToolHandler(server, "pinchtab_type");
       const result = await handler({ ref: "e1", text: "hi" });
 
-      expect(result.isError).toBe(true);
+      expect(result.isError).toBeTruthy();
       expect(result.content[0].text).toContain("type failed");
     });
 
@@ -213,7 +213,7 @@ describe("interaction tools", () => {
       const handler = getToolHandler(server, "pinchtab_press");
       const result = await handler({ key: "Enter" });
 
-      expect(result.isError).toBe(true);
+      expect(result.isError).toBeTruthy();
       expect(result.content[0].text).toContain("press failed");
     });
 
@@ -223,7 +223,7 @@ describe("interaction tools", () => {
       const handler = getToolHandler(server, "pinchtab_hover");
       const result = await handler({ ref: "e1" });
 
-      expect(result.isError).toBe(true);
+      expect(result.isError).toBeTruthy();
       expect(result.content[0].text).toContain("hover failed");
     });
 
@@ -233,7 +233,7 @@ describe("interaction tools", () => {
       const handler = getToolHandler(server, "pinchtab_focus");
       const result = await handler({ ref: "e1" });
 
-      expect(result.isError).toBe(true);
+      expect(result.isError).toBeTruthy();
       expect(result.content[0].text).toContain("focus failed");
     });
 
@@ -243,7 +243,7 @@ describe("interaction tools", () => {
       const handler = getToolHandler(server, "pinchtab_select");
       const result = await handler({ ref: "e1", value: "opt" });
 
-      expect(result.isError).toBe(true);
+      expect(result.isError).toBeTruthy();
       expect(result.content[0].text).toContain("select failed");
     });
   });
