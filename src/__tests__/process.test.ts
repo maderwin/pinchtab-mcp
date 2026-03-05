@@ -128,6 +128,7 @@ describe("ensurePinchtabRunning", () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Connection refused")));
     vi.spyOn(console, "error").mockImplementation(() => {});
     // Reset spawn mock each test; include kill so cleanup() is always safe
+    vi.mocked(spawn).mockClear();
     vi.mocked(spawn).mockReturnValue({
       kill: vi.fn(),
       on: vi.fn(),
