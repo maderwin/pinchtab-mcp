@@ -1,0 +1,27 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "ignorePaths": ["dist/", "node_modules/", "package-lock.json", "*.json"],
+  "words": [
+    "chromedp",
+    "commitlint",
+    "humanclick",
+    "humantype",
+    "instanceid",
+    "JVBE",
+    "lefthook",
+    "modelcontextprotocol",
+    "nodenext",
+    "oxfmt",
+    "oxlint",
+    "oxlintrc",
+    "pdfdata",
+    "pinch",
+    "pinchtab",
+    "rolldown",
+    "stealth",
+    "unstub",
+    "vitest",
+    "waitnav"
+  ]
+}

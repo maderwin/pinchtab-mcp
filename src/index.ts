@@ -1,0 +1,145 @@
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { cleanup, ensurePinchtabRunning } from "./pinchtab/process.js";
+import { registerAllTools } from "./tools/index.js";
+
+// Cleanup on exit
+process.on("SIGINT", () => {
+  cleanup();
+  process.exit(0);
+});
+process.on("SIGTERM", () => {
+  cleanup();
+  process.exit(0);
+});
+process.on("exit", cleanup);
+
+// Server
+const server = new McpServer(
+  { name: "pinchtab-mcp", version: "1.0.0" },
+  {
+    instructions: [
+      "You control a real browser through PinchTab — an accessibility-tree-based automation server.",
+      "",
+      "## Operating Modes",
+      "",
+      "Adapt your strategy depending on the phase of work:",
+      "",
+      "### Discovery — first visit to an unknown page",
+      "Screenshot before AND after every interaction. You don't know the layout, what's",
+      "behind modals, or how the page reacts. Take screenshots liberally to build a mental",
+      "model: after navigation, after clicking, after typing, after scrolling.",
+      "Use highlighting (see below) to map snapshot refs to visual positions.",
+      "",
+      "### Debugging — something went wrong or behaves unexpectedly",
+      "Screenshot to see current state. Compare expected vs actual. After each fix attempt,",
+      "screenshot again to verify. Don't skip screenshots here — visual diff is your best tool.",
+      "",
+      "### Production — familiar page, known structure, repeatable flow",
+      "Screenshots are optional. You already know the layout and refs. Use snapshot alone",
+      "to get refs and interact directly. Only screenshot if something fails or the result",
+      "is unexpected — then switch back to debugging mode.",
+      "",
+      "## Workflow",
+      "1. Navigate: pinchtab_navigate(url)",
+      "2. Wait 2-3s for page load: pinchtab_wait(seconds: 3)",
+      "3. **Discovery/Debug**: screenshot first to see the page",
+      "4. Snapshot the page: pinchtab_snapshot(filter: 'interactive')",
+      "   → returns element refs like e0, e1, e2…",
+      "5. If unsure which ref to target, highlight elements (see below), then screenshot again",
+      "6. Interact using refs: pinchtab_click(ref: 'e5'), pinchtab_type(ref: 'e3', text: '...')",
+      "7. **Discovery/Debug**: screenshot after each interaction to verify",
+      "   **Production**: only screenshot on unexpected results or errors",
+      "",
+      "## Highlighting Elements on Page",
+      "Inject CSS via pinchtab_eval to highlight interactive elements with colored borders",
+      "and index labels. This helps you match snapshot refs to visual positions.",
+      "Most useful in Discovery mode; unnecessary in Production.",
+      "",
+      "Note: refs (e0, e1, …) exist only in the snapshot response, NOT in the DOM.",
+      "The highlight script below labels elements in DOM order — compare the visual labels",
+      "with the snapshot ref list to find the element you need.",
+      "",
+      "Inject highlights:",
+      "```",
+      "pinchtab_eval(code: `",
+      "  (function() {",
+      "    const sel = 'a,button,input,select,textarea,[role=button],[role=link],[role=tab],[tabindex]';",
+      "    const els = document.querySelectorAll(sel);",
+      "    const colors = ['#ff0000','#00ff00','#0066ff','#ff00ff','#ff8800','#00cccc'];",
+      "    els.forEach((el, i) => {",
+      "      const c = colors[i % colors.length];",
+      "      el.style.outline = '3px solid ' + c;",
+      "      const lbl = document.createElement('span');",
+      "      lbl.className = '__pt_hl';",
+      "      lbl.textContent = i;",
+      "      lbl.style.cssText = 'position:absolute;background:'+c+';color:#fff;font:bold 10px monospace;'",
+      "        + 'padding:0 3px;z-index:99999;pointer-events:none;line-height:14px';",
+      "      el.style.position = el.style.position || 'relative';",
+      "      el.prepend(lbl);",
+      "    });",
+      "  })()",
+      "`)",
+      "```",
+      "Then screenshot to see colored outlines with numeric labels overlaid on the page.",
+      "Remove highlights:",
+      "```",
+      "pinchtab_eval(code: `",
+      "  document.querySelectorAll('.__pt_hl').forEach(l => l.remove());",
+      "  document.querySelectorAll('[style*=\\\"outline\\\"]').forEach(el => el.style.outline = '');",
+      "`)",
+      "```",
+      "",
+      "## Realistic Interactions",
+      "pinchtab_type uses humanType by default — it types character-by-character with realistic",
+      "delays, mimicking a real user. This is important for sites with keystroke listeners,",
+      "autocomplete, debounced search, etc. Set humanType=false only when you need fast",
+      "programmatic fill (e.g. pasting a long URL). Use fast=true for shorter delays.",
+      "",
+      "Clicks are dispatched as real mouse events (mousedown → mouseup → click), not",
+      "programmatic .click() calls. This triggers hover states, focus events, and other",
+      "browser behaviors correctly. Set humanClick=false only if real clicks cause issues.",
+      "",
+      "## Element Refs",
+      "- Refs (e0, e1, …) are stable identifiers from the accessibility tree",
+      "- They are NOT CSS selectors or XPath — pass them as-is to click/type/press",
+      "- Refs change after page navigation or major DOM updates — re-snapshot to get fresh refs",
+      "",
+      "## Tips",
+      "- Use filter='interactive' on snapshots to reduce token count (buttons, links, inputs only)",
+      "- Use format='compact' for minimal output (~3.6K tokens)",
+      "- Use diff=true to see only changes since last snapshot (great for multi-step flows)",
+      "- After clicking a link or submitting a form, wait + re-snapshot (+ screenshot in Discovery/Debug)",
+      "- pinchtab_get_text returns readable page content (~800 tokens) — good for extracting articles",
+      "- pinchtab_eval runs arbitrary JS in the page context for advanced automation",
+      "",
+      "## Common Patterns",
+      "- Login: [screenshot →] snapshot → type username → type password → click submit [→ screenshot]",
+      "- Search: [screenshot →] snapshot → type query → press Enter → wait [→ screenshot] → snapshot results",
+      "- Scrape: navigate → wait → get_text or snapshot → extract data",
+      "- Locate element: snapshot → highlight → screenshot → identify ref → interact",
+      "(brackets indicate steps used in Discovery/Debug but skippable in Production)",
+      "",
+      "## Errors",
+      "- If a ref is stale, re-snapshot and retry with the new ref",
+      "- If navigation times out, increase wait time",
+      "- If an interaction fails, switch to Debug mode: screenshot → diagnose → fix → screenshot",
+      "- PinchTab auto-starts if not running — first call may take a few seconds",
+    ].join("\n"),
+  },
+);
+registerAllTools(server);
+
+async function main() {
+  await ensurePinchtabRunning();
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+  console.error("PinchTab MCP server running on stdio");
+}
+
+try {
+  await main();
+} catch (error) {
+  console.error("Fatal:", error);
+  process.exit(1);
+}

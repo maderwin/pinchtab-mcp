@@ -1,0 +1,17 @@
+commit-msg:
+  commands:
+    commitlint:
+      run: npx commitlint --edit {1}
+
+pre-commit:
+  commands:
+    lint-staged:
+      glob: "*.ts"
+      run: npx lint-staged
+
+pre-push:
+  commands:
+    typecheck:
+      run: npx tsc --noEmit
+    test:
+      run: npx vitest run

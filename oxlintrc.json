@@ -1,0 +1,72 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/npm/oxlint/configuration_schema.json",
+  "plugins": [
+    "unicorn",
+    "typescript",
+    "import",
+    "promise",
+    "node",
+    "vitest",
+    "oxc"
+  ],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn",
+    "style": "warn"
+  },
+  "rules": {
+    "no-console": "off",
+    "no-magic-numbers": "off",
+    "no-ternary": "off",
+    "no-void": "off",
+    "no-param-reassign": "warn",
+    "default-case": "warn",
+    "init-declarations": "off",
+    "max-lines-per-function": ["warn", { "max": 200 }],
+    "max-nested-callbacks": ["warn", { "max": 4 }],
+    "max-params": ["warn", { "max": 5 }],
+    "sort-imports": ["warn", {
+      "ignoreCase": true,
+      "ignoreDeclarationSort": true,
+      "ignoreMemberSort": false
+    }],
+    "sort-keys": ["warn", "asc", { "natural": true, "caseSensitive": false }],
+    "func-style": "off",
+    "curly": ["warn", "multi-line"],
+    "yoda": "off",
+
+    "unicorn/filename-case": ["error", { "cases": { "kebabCase": true } }],
+    "unicorn/no-null": "warn",
+    "unicorn/prevent-abbreviations": "off",
+    "unicorn/no-process-exit": "off",
+    "unicorn/no-nested-ternary": "warn",
+    "unicorn/switch-case-braces": "warn",
+    "unicorn/consistent-function-scoping": "warn",
+    "unicorn/prefer-string-raw": "off",
+
+    "typescript/no-explicit-any": "warn",
+    "typescript/consistent-type-definitions": ["warn", "interface"],
+    "typescript/consistent-indexed-object-style": ["warn", "record"],
+    "import/consistent-type-specifier-style": "off",
+
+    "import/no-cycle": "error",
+    "import/no-self-import": "error",
+    "import/no-duplicates": "warn",
+    "import/group-exports": "off",
+    "import/exports-last": "off",
+
+    "jest/prefer-lowercase-title": ["warn", { "ignore": ["describe"] }],
+    "jest/no-disabled-tests": "warn",
+    "jest/consistent-test-it": ["warn", { "fn": "it" }],
+    "jest/no-hooks": "off",
+    "jest/require-hook": "off",
+    "jest/no-standalone-expect": "off",
+    "jest/prefer-expect-resolves": "warn",
+
+    "promise/avoid-new": "off",
+    "promise/param-names": "warn",
+    "promise/prefer-await-to-callbacks": "off",
+    "promise/prefer-await-to-then": "warn"
+  },
+  "ignorePatterns": ["dist/", "node_modules/"]
+}
