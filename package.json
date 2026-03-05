@@ -1,6 +1,6 @@
 {
   "name": "pinchtab-mcp",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "MCP server for PinchTab browser automation — control Chrome via accessibility tree snapshots",
   "type": "module",
   "bin": {
