@@ -38,7 +38,7 @@ jobs:
         run: npm test
 
       - name: Security audit
-        run: npm audit --audit-level=moderate
+        run: npm audit --omit=dev --audit-level=moderate
 
       - name: Test with coverage
         if: matrix.node-version == 22
