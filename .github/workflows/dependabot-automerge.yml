@@ -1,0 +1,274 @@
+name: Dependabot Auto-merge
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  automerge:
+    runs-on: ubuntu-latest
+
+    # Only run for Dependabot PRs or PRs with pinchtab-update label
+    if: |
+      github.actor == 'dependabot[bot]' ||
+      contains(github.event.pull_request.labels.*.name, 'pinchtab-update')
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Extract dependency metadata
+        id: metadata
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const title = pr.title;
+            const body = pr.body || '';
+            const labels = pr.labels.map(l => l.name);
+
+            // Check if this is a pinchtab update
+            const isPinchtab = labels.includes('pinchtab-update') || title.includes('pinchtab');
+
+            // Extract package name and versions from PR title
+            // Expected format: "chore(deps): bump PACKAGE from X.Y.Z to A.B.C"
+            const match = title.match(/bump (.+?) from ([\d.]+) to ([\d.]+)/);
+
+            if (!match) {
+              core.setFailed('Could not extract dependency info from PR title');
+              return;
+            }
+
+            const packageName = match[1].trim();
+            const oldVersion = match[2];
+            const newVersion = match[3];
+
+            core.info(`Package: ${packageName}`);
+            core.info(`Old version: ${oldVersion}`);
+            core.info(`New version: ${newVersion}`);
+            core.info(`Is PinchTab: ${isPinchtab}`);
+
+            // Calculate semver diff
+            const oldParts = oldVersion.split('.').map(Number);
+            const newParts = newVersion.split('.').map(Number);
+
+            let semverDiff = 'patch';
+            if (newParts[0] > oldParts[0]) {
+              semverDiff = 'major';
+            } else if (newParts[1] > oldParts[1]) {
+              semverDiff = 'minor';
+            }
+
+            core.info(`Semver diff: ${semverDiff}`);
+
+            core.setOutput('package', packageName);
+            core.setOutput('old_version', oldVersion);
+            core.setOutput('new_version', newVersion);
+            core.setOutput('semver_diff', semverDiff);
+            core.setOutput('is_pinchtab', isPinchtab);
+
+      - name: Wait for CI checks
+        id: wait_ci
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const maxWaitMinutes = 15;
+            const pollIntervalSeconds = 30;
+            const maxPolls = (maxWaitMinutes * 60) / pollIntervalSeconds;
+
+            core.info(`Waiting for CI checks to complete (max ${maxWaitMinutes} minutes)...`);
+
+            for (let i = 0; i < maxPolls; i++) {
+              // Get all check runs for this commit
+              const { data: checkRuns } = await github.rest.checks.listForRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: context.payload.pull_request.head.sha,
+              });
+
+              // Filter out this workflow (dependabot-automerge) to avoid self-waiting
+              const relevantChecks = checkRuns.check_runs.filter(
+                check => check.name !== 'automerge'
+              );
+
+              if (relevantChecks.length === 0) {
+                core.info('No CI checks found yet, waiting...');
+                await new Promise(resolve => setTimeout(resolve, pollIntervalSeconds * 1000));
+                continue;
+              }
+
+              const pending = relevantChecks.filter(c => c.status !== 'completed');
+              const completed = relevantChecks.filter(c => c.status === 'completed');
+              const failed = completed.filter(c => c.conclusion !== 'success');
+
+              core.info(`Checks status: ${completed.length}/${relevantChecks.length} completed, ${failed.length} failed`);
+
+              // If all checks completed
+              if (pending.length === 0) {
+                const allPassed = failed.length === 0;
+                core.setOutput('ci_passed', allPassed);
+                core.setOutput('ci_completed', true);
+
+                if (allPassed) {
+                  core.info('✅ All CI checks passed');
+                } else {
+                  core.warning(`❌ ${failed.length} CI check(s) failed: ${failed.map(c => c.name).join(', ')}`);
+                }
+
+                return;
+              }
+
+              // Wait before next poll
+              await new Promise(resolve => setTimeout(resolve, pollIntervalSeconds * 1000));
+            }
+
+            // Timeout
+            core.setOutput('ci_completed', false);
+            core.warning(`⏱️ Timeout waiting for CI checks after ${maxWaitMinutes} minutes`);
+
+      - name: Handle PinchTab major update
+        if: |
+          steps.metadata.outputs.is_pinchtab == 'true' &&
+          steps.metadata.outputs.semver_diff == 'major'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+
+            // Add label
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              labels: ['needs-manual-review'],
+            });
+
+            // Add comment
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              body: `⚠️ **Major PinchTab update detected**
+
+This PR updates pinchtab from ${{ steps.metadata.outputs.old_version }} to ${{ steps.metadata.outputs.new_version }}, which is a **major version change**.
+
+Major updates may include breaking changes and require manual review before merging.
+
+**Required actions:**
+1. Review the [PinchTab changelog](https://github.com/rethinkbooks/pinchtab/releases)
+2. Check for breaking changes
+3. Test the integration manually if needed
+4. Approve and merge when ready
+
+---
+🤖 Auto-merge is disabled for this PR due to major version change.`,
+            });
+
+            core.info('⚠️ PinchTab major update - manual review required');
+
+      - name: Handle PinchTab failed CI
+        if: |
+          steps.metadata.outputs.is_pinchtab == 'true' &&
+          steps.wait_ci.outputs.ci_completed == 'true' &&
+          steps.wait_ci.outputs.ci_passed == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+
+            // Add labels
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              labels: ['ci-failed', 'needs-manual-review'],
+            });
+
+            // Add comment
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              body: `❌ **PinchTab update failed CI checks**
+
+The update from pinchtab ${{ steps.metadata.outputs.old_version }} to ${{ steps.metadata.outputs.new_version }} did not pass all required CI checks.
+
+**Next steps:**
+1. Review the failed checks in the "Checks" tab
+2. Investigate compatibility issues or breaking changes
+3. Fix any issues in the codebase if needed
+4. Re-run CI or close this PR if the update is not compatible
+
+---
+🤖 Auto-merge is disabled for this PR due to CI failures. Manual review required.`,
+            });
+
+            core.warning('❌ PinchTab CI failed - manual review required');
+
+      - name: Auto-merge if eligible
+        if: |
+          steps.wait_ci.outputs.ci_completed == 'true' &&
+          steps.wait_ci.outputs.ci_passed == 'true' &&
+          !(steps.metadata.outputs.is_pinchtab == 'true' && steps.metadata.outputs.semver_diff == 'major')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const packageName = '${{ steps.metadata.outputs.package }}';
+            const semverDiff = '${{ steps.metadata.outputs.semver_diff }}';
+            const isPinchtab = '${{ steps.metadata.outputs.is_pinchtab }}' === 'true';
+
+            core.info(`✅ Eligible for auto-merge: ${packageName} (${semverDiff})`);
+
+            // Approve the PR
+            await github.rest.pulls.createReview({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+              event: 'APPROVE',
+              body: `✅ Auto-approved by workflow
+
+**Dependency:** ${packageName}
+**Version change:** ${{ steps.metadata.outputs.old_version }} → ${{ steps.metadata.outputs.new_version }} (${semverDiff})
+**CI status:** All checks passed
+
+This PR meets all requirements for automatic merging.`,
+            });
+
+            core.info('✅ PR approved');
+
+            // Enable auto-merge
+            await github.rest.pulls.merge({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+              merge_method: 'squash',
+            });
+
+            core.info('✅ PR merged successfully');
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Dependabot Auto-merge Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Package:** ${{ steps.metadata.outputs.package }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ steps.metadata.outputs.old_version }} → ${{ steps.metadata.outputs.new_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Semver diff:** ${{ steps.metadata.outputs.semver_diff }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Is PinchTab:** ${{ steps.metadata.outputs.is_pinchtab }}" >> $GITHUB_STEP_SUMMARY
+          echo "**CI completed:** ${{ steps.wait_ci.outputs.ci_completed }}" >> $GITHUB_STEP_SUMMARY
+          echo "**CI passed:** ${{ steps.wait_ci.outputs.ci_passed }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ steps.metadata.outputs.is_pinchtab }}" = "true" ] && [ "${{ steps.metadata.outputs.semver_diff }}" = "major" ]; then
+            echo "⚠️ **Result:** Manual review required (major PinchTab update)" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ steps.wait_ci.outputs.ci_passed }}" = "false" ]; then
+            echo "❌ **Result:** Manual review required (CI failed)" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ steps.wait_ci.outputs.ci_completed }}" = "true" ] && [ "${{ steps.wait_ci.outputs.ci_passed }}" = "true" ]; then
+            echo "✅ **Result:** Auto-merged successfully" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⏱️ **Result:** Waiting for CI or timeout" >> $GITHUB_STEP_SUMMARY
+          fi
