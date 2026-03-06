@@ -26,6 +26,8 @@ jobs:
           cache: npm
 
       - run: npm install -g npm@latest
+      - run: npm --version
+
       - run: npm ci
       - run: npx tsc --noEmit
       - run: npm run lint
@@ -36,3 +38,13 @@ jobs:
         run: npx semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to npm
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          if npm view "pinchtab-mcp@$VERSION" version 2>/dev/null; then
+            echo "Version $VERSION already published, skipping"
+          else
+            echo "Publishing $VERSION to npm"
+            npm publish --provenance --access public
+          fi
