@@ -128,28 +128,48 @@ Smithery automatically indexes npm packages with MCP-related keywords.
 
 ---
 
-### 2. Official MCP Registry (Anthropic)
+### 2. Official MCP Registry (https://registry.modelcontextprotocol.io/)
 
-**Status:** The official MCP registry is currently invite-only or may use GitHub-based discovery.
+**Status:** Requires building publisher CLI from source + GitHub authentication.
 
-**GitHub Repository Requirements:**
-- ✅ Topic tags: `mcp`, `mcp-server` (add via GitHub settings)
-- ✅ Clear README
-- ✅ LICENSE file
-- ✅ Active maintenance
+**Requirements:**
+- ✅ Published on npm
+- ✅ GitHub repository with topics: `mcp`, `mcp-server`
+- ✅ Clear README and LICENSE
+- ⏳ GitHub OAuth authentication
+- ⏳ Build and run `mcp-publisher` CLI
 
-**Add GitHub Topics:**
+**Submission Process:**
+
+1. **Clone the registry repository:**
 ```bash
-# Via GitHub web UI:
-# 1. Go to https://github.com/maderwin/pinchtab-mcp
-# 2. Click the gear icon next to "About"
-# 3. Add topics: mcp, mcp-server, browser-automation, pinchtab
+git clone https://github.com/modelcontextprotocol/registry.git
+cd registry
 ```
 
-**Or via GitHub API:**
+2. **Build the publisher CLI:**
 ```bash
-gh api repos/maderwin/pinchtab-mcp/topics -X PUT -f names[]="mcp" -f names[]="mcp-server" -f names[]="browser-automation" -f names[]="pinchtab" -f names[]="chrome-automation"
+make publisher
 ```
+
+3. **Run the publisher with GitHub auth:**
+```bash
+./bin/mcp-publisher publish \
+  --namespace io.github.maderwin \
+  --name pinchtab-mcp \
+  --source npm \
+  --package pinchtab-mcp
+```
+
+**Authentication:**
+- Uses GitHub OAuth to verify namespace ownership
+- For `io.github.maderwin/pinchtab-mcp`, must authenticate as GitHub user `maderwin`
+- Alternatively: GitHub OIDC tokens (for CI/CD automation)
+
+**Resources:**
+- Registry repository: https://github.com/modelcontextprotocol/registry
+- Quickstart: `/docs/modelcontextprotocol-io/quickstart.mdx`
+- Live docs: https://registry.modelcontextprotocol.io/docs
 
 ---
 
@@ -157,17 +177,23 @@ gh api repos/maderwin/pinchtab-mcp/topics -X PUT -f names[]="mcp" -f names[]="mc
 
 **awesome-mcp-servers** (https://github.com/punkpeye/awesome-mcp-servers)
 
-Submit a PR adding pinchtab-mcp to the list:
+**Status:** ✅ PR #2808 submitted and awaiting review
 
+Submitted entry:
 ```markdown
-### Browser Automation
-
-- [pinchtab-mcp](https://github.com/maderwin/pinchtab-mcp) - Control Chrome via accessibility tree snapshots through PinchTab
+- [maderwin/pinchtab-mcp](https://github.com/maderwin/pinchtab-mcp) [glama](https://glama.ai/mcp/servers/maderwin/pinchtab-mcp) 📇 🏠 🍎 🪟 🐧 - Control Chrome via accessibility tree snapshots through PinchTab. Zero-config browser automation with 19 tools.
 ```
 
-**MCP Directory** (https://mcp.directory)
+Emoji legend:
+- 📇 = TypeScript implementation
+- 🏠 = Local service (controls local browser)
+- 🍎 🪟 🐧 = Cross-platform (macOS, Windows, Linux)
 
-If this becomes available, submit via their web form or API.
+**mcp.so** (https://mcprepository.com)
+
+**Status:** ✅ Submitted via `npx mcp-index`
+
+Listed at: https://mcprepository.com/maderwin/pinchtab-mcp
 
 ---
 
