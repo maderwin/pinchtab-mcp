@@ -2,6 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/pinchtab-mcp)](https://www.npmjs.com/package/pinchtab-mcp)
 [![CI](https://github.com/maderwin/pinchtab-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/maderwin/pinchtab-mcp/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-98%25-brightgreen)](https://github.com/maderwin/pinchtab-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/node/v/pinchtab-mcp)](https://nodejs.org)
 
