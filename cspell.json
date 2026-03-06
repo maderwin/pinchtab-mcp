@@ -3,6 +3,7 @@
   "language": "en",
   "ignorePaths": ["dist/", "node_modules/", "package-lock.json", "*.json"],
   "words": [
+    "aifirelab",
     "chromedp",
     "codecov",
     "commitlint",

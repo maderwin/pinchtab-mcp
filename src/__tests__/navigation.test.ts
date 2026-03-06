@@ -92,14 +92,14 @@ describe("pinchtab_navigate", () => {
   });
 
   it("calls POST /navigate with url", async () => {
-    mockPinch.mockResolvedValueOnce({ title: "Example", url: "https://example.com/" });
+    mockPinch.mockResolvedValueOnce({ ok: true });
 
     const handler = getToolHandler(server, "pinchtab_navigate");
     const result = await handler({ url: "https://example.com" });
 
     expect(mockPinch).toHaveBeenCalledWith("POST", "/navigate", { url: "https://example.com" });
     expect(result.content[0].type).toBe("text");
-    expect(result.content[0].text).toContain("Example");
+    expect(result.content[0].text).toContain("example.com");
   });
 
   it("opens URL in new tab when newTab=true", async () => {
@@ -122,6 +122,19 @@ describe("pinchtab_navigate", () => {
 
     expect(result.isError).toBeTruthy();
     expect(result.content[0].text).toContain("timeout");
+  });
+
+  it("waits and returns snapshot when waitMs is set", async () => {
+    mockPinch.mockResolvedValueOnce({ ok: true });
+    mockPinch.mockResolvedValueOnce({ count: 1, nodes: ["button"] });
+
+    const handler = getToolHandler(server, "pinchtab_navigate");
+    const result = await handler({ url: "https://example.com", waitMs: 100 });
+
+    expect(mockPinch).toHaveBeenCalledWith("POST", "/navigate", { url: "https://example.com" });
+    expect(mockPinch).toHaveBeenCalledWith("GET", "/snapshot?format=compact");
+    expect(result.content[0].text).toContain("Navigated to");
+    expect(result.content[0].text).toContain("button");
   });
 });
 
@@ -263,6 +276,59 @@ describe("pinchtab_scroll", () => {
 
     expect(result.isError).toBeTruthy();
     expect(result.content[0].text).toContain("scroll failed");
+  });
+});
+
+describe("pinchtab_wait_for_selector", () => {
+  let server: McpServer;
+
+  beforeEach(() => {
+    mockPinch.mockReset();
+    server = new McpServer({ name: "test", version: "0.0.0" });
+    registerNavigationTools(server);
+  });
+
+  it("returns found when selector exists immediately", async () => {
+    mockPinch.mockResolvedValueOnce(true);
+
+    const handler = getToolHandler(server, "pinchtab_wait_for_selector");
+    const result = await handler({ selector: "#login" });
+
+    expect(mockPinch).toHaveBeenCalledWith("POST", "/evaluate", {
+      expression: '!!document.querySelector("#login")',
+    });
+    expect(result.content[0].text).toContain('"found": true');
+  });
+
+  it("polls until selector appears", async () => {
+    mockPinch.mockResolvedValueOnce(false);
+    mockPinch.mockResolvedValueOnce(false);
+    mockPinch.mockResolvedValueOnce(true);
+
+    const handler = getToolHandler(server, "pinchtab_wait_for_selector");
+    const result = await handler({ selector: ".loaded", timeoutMs: 5000 });
+
+    expect(mockPinch).toHaveBeenCalledTimes(3);
+    expect(result.content[0].text).toContain('"found": true');
+  });
+
+  it("handles object result with result=true", async () => {
+    mockPinch.mockResolvedValueOnce({ result: true });
+
+    const handler = getToolHandler(server, "pinchtab_wait_for_selector");
+    const result = await handler({ selector: ".ready" });
+
+    expect(result.content[0].text).toContain('"found": true');
+  });
+
+  it("returns isError on evaluate failure", async () => {
+    mockPinch.mockRejectedValueOnce(new Error("evaluate failed"));
+
+    const handler = getToolHandler(server, "pinchtab_wait_for_selector");
+    const result = await handler({ selector: "#missing" });
+
+    expect(result.isError).toBeTruthy();
+    expect(result.content[0].text).toContain("evaluate failed");
   });
 });
 

@@ -6,29 +6,52 @@ import { toolError, toolResult } from "../utils.js";
 const DEFAULT_SCROLL_PX = 500;
 const DEFAULT_WAIT_SEC = 3;
 const MAX_WAIT_SEC = 30;
+const MAX_WAIT_MS = 10_000;
 const MIN_WAIT_SEC = 1;
+const SELECTOR_POLL_MS = 500;
+const SELECTOR_TIMEOUT_DEFAULT = 5000;
+const SELECTOR_TIMEOUT_MAX = 15_000;
+
+async function waitAndSnapshot(ms: number): Promise<string> {
+  const clamped = Math.min(ms, MAX_WAIT_MS);
+  await new Promise((resolve) => setTimeout(resolve, clamped));
+  const snapshot = await pinch("GET", "/snapshot?format=compact");
+  return typeof snapshot === "string" ? snapshot : JSON.stringify(snapshot, undefined, 2);
+}
 
 export function registerNavigationTools(server: McpServer) {
   server.registerTool(
     "pinchtab_navigate",
     {
       description:
-        "Navigate the browser to a URL. Wait 3+ seconds after calling before taking a snapshot.",
+        "Navigate the browser to a URL. Set waitMs to wait for page load and get a snapshot back automatically.",
       inputSchema: z.object({
         newTab: z
           .boolean()
           .optional()
           .describe("Open the URL in a new tab instead of navigating the current one."),
         url: z.string().describe("URL to navigate to"),
+        waitMs: z
+          .number()
+          .optional()
+          .describe(
+            "Wait this many ms after navigation, then return a compact page snapshot (max 10000).",
+          ),
       }),
       title: "Navigate",
     },
-    async ({ url, newTab }) => {
+    async ({ url, newTab, waitMs }) => {
       try {
         if (newTab) {
-          return toolResult(await pinch("POST", "/tab", { action: "new", url }));
+          await pinch("POST", "/tab", { action: "new", url });
+        } else {
+          await pinch("POST", "/navigate", { url });
         }
-        return toolResult(await pinch("POST", "/navigate", { url }));
+        if (waitMs && waitMs > 0) {
+          const snap = await waitAndSnapshot(waitMs);
+          return toolResult(`Navigated to ${url}\n\n${snap}`);
+        }
+        return toolResult({ navigated: url });
       } catch (error) {
         return toolError(error);
       }
@@ -124,6 +147,46 @@ export function registerNavigationTools(server: McpServer) {
       const sec = Math.min(Math.max(raw, MIN_WAIT_SEC), MAX_WAIT_SEC);
       await new Promise((resolve) => setTimeout(resolve, sec * 1000));
       return toolResult({ waited: sec });
+    },
+  );
+
+  server.registerTool(
+    "pinchtab_wait_for_selector",
+    {
+      description:
+        "Wait for a CSS selector to appear on the page. Polls every 500ms up to the timeout. Useful for waiting on dynamic content, modals, or lazy-loaded elements.",
+      inputSchema: z.object({
+        selector: z
+          .string()
+          .describe("CSS selector to wait for (e.g. '#login-form', '.loaded', '[data-ready]')"),
+        timeoutMs: z
+          .number()
+          .optional()
+          .describe("Maximum wait time in ms (default: 5000, max: 15000)."),
+      }),
+      title: "Wait for Selector",
+    },
+    async ({ selector, timeoutMs }) => {
+      const timeout = Math.min(timeoutMs ?? SELECTOR_TIMEOUT_DEFAULT, SELECTOR_TIMEOUT_MAX);
+      const deadline = Date.now() + timeout;
+      try {
+        while (Date.now() < deadline) {
+          const result = await pinch("POST", "/evaluate", {
+            expression: `!!document.querySelector(${JSON.stringify(selector)})`,
+          });
+          const found =
+            result === true ||
+            result === "true" ||
+            (typeof result === "object" &&
+              result !== null &&
+              (result as Record<string, unknown>).result === true);
+          if (found) return toolResult({ found: true, selector });
+          await new Promise((resolve) => setTimeout(resolve, SELECTOR_POLL_MS));
+        }
+        return toolError(new Error(`Selector "${selector}" not found within ${timeout}ms`));
+      } catch (error) {
+        return toolError(error);
+      }
     },
   );
 }

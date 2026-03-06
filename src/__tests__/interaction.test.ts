@@ -26,7 +26,7 @@ function getToolHandler(server: McpServer, name: string): ToolHandler {
   return tool.handler;
 }
 
-describe("interaction tools", () => {
+describe("pinchtab_click", () => {
   let server: McpServer;
 
   beforeEach(() => {
@@ -35,7 +35,7 @@ describe("interaction tools", () => {
     registerInteractionTools(server);
   });
 
-  describe("pinchtab_click", () => {
+  describe("actions", () => {
     it("uses humanClick kind by default", async () => {
       mockPinch.mockResolvedValueOnce({ ok: true });
 
@@ -82,6 +82,32 @@ describe("interaction tools", () => {
       expect(result.isError).toBeTruthy();
       expect(result.content[0].text).toContain("element not found");
     });
+
+    it("waits and returns snapshot when waitMs is set", async () => {
+      mockPinch.mockResolvedValueOnce({ ok: true });
+      mockPinch.mockResolvedValueOnce({ count: 1, nodes: ["dialog"] });
+
+      const handler = getToolHandler(server, "pinchtab_click");
+      const result = await handler({ ref: "e5", waitMs: 200 });
+
+      expect(mockPinch).toHaveBeenCalledWith("POST", "/action", {
+        kind: "humanClick",
+        ref: "e5",
+      });
+      expect(mockPinch).toHaveBeenCalledWith("GET", "/snapshot?format=compact");
+      expect(result.content[0].text).toContain("Clicked e5");
+      expect(result.content[0].text).toContain("dialog");
+    });
+  });
+});
+
+describe("interaction tools", () => {
+  let server: McpServer;
+
+  beforeEach(() => {
+    mockPinch.mockReset();
+    server = new McpServer({ name: "test", version: "0.0.0" });
+    registerInteractionTools(server);
   });
 
   describe("pinchtab_type", () => {
@@ -136,6 +162,26 @@ describe("interaction tools", () => {
         ref: "e3",
         text: "hello",
       });
+    });
+
+    it("uses clearFirst mode for React/Vue/Angular inputs", async () => {
+      mockPinch.mockResolvedValue({ ok: true });
+
+      const handler = getToolHandler(server, "pinchtab_type");
+      const result = await handler({ clearFirst: true, ref: "e3", text: "hello" });
+
+      expect(mockPinch).toHaveBeenCalledWith("POST", "/action", { kind: "click", ref: "e3" });
+      expect(mockPinch).toHaveBeenCalledWith("POST", "/action", {
+        key: "Control+a",
+        kind: "press",
+        ref: "e3",
+      });
+      expect(mockPinch).toHaveBeenCalledWith("POST", "/action", {
+        kind: "type",
+        ref: "e3",
+        text: "hello",
+      });
+      expect(result.content[0].text).toContain('"cleared": true');
     });
   });
 

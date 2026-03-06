@@ -359,8 +359,8 @@
       </div>
       <div class="feature">
         <span class="icon">⚡</span>
-        <h3>18 Tools</h3>
-        <p>Navigate, click, type, hover, focus, select, scroll, press keys, screenshot, eval JS, export PDF, extract text.</p>
+        <h3>19 Tools</h3>
+        <p>Navigate, click, type, hover, focus, select, scroll, press keys, wait for selectors, screenshot, eval JS, export PDF, extract text.</p>
       </div>
     </div>
   </section>
@@ -412,11 +412,10 @@
   <section>
     <h2>Agent Workflow</h2>
     <div class="workflow">
-      <div class="step"><code>pinchtab_navigate</code> <span class="label">— go to URL</span></div>
-      <div class="step"><code>pinchtab_wait</code> <span class="label">— let the page load (3s)</span></div>
-      <div class="step"><code>pinchtab_screenshot</code> <span class="label">— see what's on screen</span></div>
-      <div class="step"><code>pinchtab_snapshot</code> <span class="label">— get element refs (e0, e1, …)</span></div>
-      <div class="step"><code>pinchtab_click</code> / <code>pinchtab_type</code> <span class="label">— interact by ref</span></div>
+      <div class="step"><code>pinchtab_navigate</code> <span class="label">— go to URL (use waitMs to get snapshot in one call)</span></div>
+      <div class="step"><code>pinchtab_snapshot</code> <span class="label">— get element refs (e0, e1, …); use filter='interactive' for fewer tokens</span></div>
+      <div class="step"><code>pinchtab_click</code> / <code>pinchtab_type</code> <span class="label">— interact by ref (use waitMs for post-action snapshot)</span></div>
+      <div class="step"><code>pinchtab_wait_for_selector</code> <span class="label">— wait for dynamic content instead of fixed delays</span></div>
       <div class="step"><code>pinchtab_snapshot</code> <span class="label">— verify result</span></div>
     </div>
   </section>
@@ -428,17 +427,18 @@
       <thead><tr><th>Tool</th><th>Description</th></tr></thead>
       <tbody>
         <tr><td>pinchtab_list_instances</td><td>List all open browser instances</td></tr>
-        <tr><td>pinchtab_navigate</td><td>Navigate to a URL — optionally open in new tab</td></tr>
+        <tr><td>pinchtab_navigate</td><td>Navigate to a URL — new tab support, waitMs for auto-snapshot</td></tr>
         <tr><td>pinchtab_snapshot</td><td>Get accessibility tree with element refs. Supports filter, compact format, diff mode</td></tr>
         <tr><td>pinchtab_screenshot</td><td>Take a page screenshot (base64 JPEG)</td></tr>
-        <tr><td>pinchtab_click</td><td>Click element by ref — real mouse events by default</td></tr>
-        <tr><td>pinchtab_type</td><td>Type text into input — human-like keystrokes by default</td></tr>
+        <tr><td>pinchtab_click</td><td>Click element by ref — real mouse events, waitMs for auto-snapshot</td></tr>
+        <tr><td>pinchtab_type</td><td>Type text into input — human-like keystrokes, clearFirst for React/Vue/Angular</td></tr>
         <tr><td>pinchtab_press</td><td>Press keyboard key — optionally on a specific element</td></tr>
         <tr><td>pinchtab_hover</td><td>Hover over element — reveal tooltips, dropdowns</td></tr>
         <tr><td>pinchtab_focus</td><td>Focus element — trigger autocomplete, focus-dependent UI</td></tr>
         <tr><td>pinchtab_select</td><td>Select option in a dropdown by value or visible text</td></tr>
         <tr><td>pinchtab_scroll</td><td>Scroll page or element in any direction</td></tr>
         <tr><td>pinchtab_wait</td><td>Wait N seconds (1-30, default 3)</td></tr>
+        <tr><td>pinchtab_wait_for_selector</td><td>Wait for CSS selector to appear — polls every 500ms, up to 15s</td></tr>
         <tr><td>pinchtab_get_text</td><td>Get readable page text (~800 tokens)</td></tr>
         <tr><td>pinchtab_eval</td><td>Execute JavaScript in page context</td></tr>
         <tr><td>pinchtab_pdf</td><td>Export current page as PDF</td></tr>

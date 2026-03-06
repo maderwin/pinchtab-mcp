@@ -3,12 +3,21 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { pinch } from "../pinchtab/client.js";
 import { toolError, toolResult } from "../utils.js";
 
+const MAX_WAIT_MS = 10_000;
+
+async function waitAndSnapshot(ms: number): Promise<string> {
+  const clamped = Math.min(ms, MAX_WAIT_MS);
+  await new Promise((resolve) => setTimeout(resolve, clamped));
+  const snapshot = await pinch("GET", "/snapshot?format=compact");
+  return typeof snapshot === "string" ? snapshot : JSON.stringify(snapshot, undefined, 2);
+}
+
 export function registerInteractionTools(server: McpServer) {
   server.registerTool(
     "pinchtab_click",
     {
       description:
-        "Click an element by its ref ID (e.g. 'e5'). Uses human-like click by default (real mouse events: mousedown → mouseup → click). Set humanClick=false for programmatic click.",
+        "Click an element by its ref ID (e.g. 'e5'). Uses human-like click by default. Set waitMs to get a snapshot after clicking (saves a round-trip). For SPAs, clicking may not cause full navigation.",
       inputSchema: z.object({
         humanClick: z
           .boolean()
@@ -17,6 +26,12 @@ export function registerInteractionTools(server: McpServer) {
             "Use real mouse events (default: true). Set to false for programmatic .click().",
           ),
         ref: z.string().describe("Element reference ID (e.g. 'e5')"),
+        waitMs: z
+          .number()
+          .optional()
+          .describe(
+            "Wait this many ms after clicking, then return a compact page snapshot (max 10000).",
+          ),
         waitNav: z
           .boolean()
           .optional()
@@ -24,12 +39,17 @@ export function registerInteractionTools(server: McpServer) {
       }),
       title: "Click",
     },
-    async ({ ref, humanClick, waitNav }) => {
+    async ({ ref, humanClick, waitNav, waitMs }) => {
       try {
         const kind = humanClick === false ? "click" : "humanClick";
         const body: Record<string, unknown> = { kind, ref };
         if (waitNav) body.waitNav = true;
-        return toolResult(await pinch("POST", "/action", body));
+        await pinch("POST", "/action", body);
+        if (waitMs && waitMs > 0) {
+          const snap = await waitAndSnapshot(waitMs);
+          return toolResult(`Clicked ${ref}\n\n${snap}`);
+        }
+        return toolResult({ clicked: ref });
       } catch (error) {
         return toolError(error);
       }
@@ -40,8 +60,14 @@ export function registerInteractionTools(server: McpServer) {
     "pinchtab_type",
     {
       description:
-        "Type text into an input field by its ref ID. Uses human-like typing by default (character-by-character with realistic delays). Set humanType=false for instant programmatic fill.",
+        "Type text into an input field by its ref ID. Uses human-like typing by default. Set clearFirst=true to click, select all, then type — required for React/Vue/Angular inputs where direct fill doesn't trigger state updates.",
       inputSchema: z.object({
+        clearFirst: z
+          .boolean()
+          .optional()
+          .describe(
+            "Click the field, select all (Ctrl+A), then type. Required for React/Vue/Angular inputs.",
+          ),
         fast: z
           .boolean()
           .optional()
@@ -59,8 +85,14 @@ export function registerInteractionTools(server: McpServer) {
       }),
       title: "Type",
     },
-    async ({ ref, text, humanType, fast }) => {
+    async ({ ref, text, humanType, fast, clearFirst }) => {
       try {
+        if (clearFirst) {
+          await pinch("POST", "/action", { kind: "click", ref });
+          await pinch("POST", "/action", { key: "Control+a", kind: "press", ref });
+          await pinch("POST", "/action", { kind: "type", ref, text });
+          return toolResult({ cleared: true, ref, typed: text });
+        }
         const kind = humanType === false ? "fill" : "humanType";
         const body: Record<string, unknown> = { kind, ref, text };
         if (fast && kind === "humanType") body.fast = true;
