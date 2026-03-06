@@ -4,7 +4,8 @@ export default defineConfig({
   test: {
     coverage: {
       // index.ts is the MCP server entry point — integration code, covered by E2E
-      exclude: ["src/__tests__/**", "src/index.ts", "rolldown.config.ts"],
+      // instructions.ts is static text content for MCP agents, no unit tests needed
+      exclude: ["src/__tests__/**", "src/index.ts", "src/instructions.ts", "rolldown.config.ts"],
       include: ["src/**/*.ts"],
       provider: "v8",
       reporter: ["text", "html", "lcov"],
