@@ -3,6 +3,7 @@ name: Release
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   release:
@@ -34,6 +35,10 @@ jobs:
       - run: npm test
       - run: npm run build
 
+      - name: Get pre-release version
+        id: before
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
       - name: Release
         run: npx semantic-release
         env:
@@ -42,8 +47,12 @@ jobs:
       - name: Publish to npm
         run: |
           VERSION=$(node -p "require('./package.json').version")
+          if [ "$VERSION" = "${{ steps.before.outputs.version }}" ]; then
+            echo "No new version released, skipping npm publish"
+            exit 0
+          fi
           if npm view "pinchtab-mcp@$VERSION" version 2>/dev/null; then
-            echo "Version $VERSION already published, skipping"
+            echo "Version $VERSION already published on npm, skipping"
           else
             echo "Publishing $VERSION to npm"
             npm publish --provenance --access public
