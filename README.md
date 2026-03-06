@@ -7,6 +7,10 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/node/v/pinchtab-mcp)](https://nodejs.org)
 
+[![Smithery](https://img.shields.io/badge/Smithery-MCP_Server-blue?logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTIgMkw0IDZWMTJDNCAxNi40MTgyIDcuNTgxNzIgMjAgMTIgMjBDMTYuNDE4MyAyMCAyMCAxNi40MTgyIDIwIDEyVjZMMTIgMloiIGZpbGw9IndoaXRlIi8+PC9zdmc+)](https://smithery.ai/server/pinchtab-mcp)
+[![Glama](https://img.shields.io/badge/Glama-MCP_Server-purple)](https://glama.ai/mcp/servers/maderwin/pinchtab-mcp)
+[![mcp.so](https://img.shields.io/badge/mcp.so-Registry-orange)](https://mcprepository.com/maderwin/pinchtab-mcp)
+
 MCP server for [PinchTab](https://pinchtab.com) — control Chrome (or any Chromium browser) via accessibility tree snapshots through the Model Context Protocol.
 
 PinchTab is included as a dependency and starts automatically — no manual setup required.
