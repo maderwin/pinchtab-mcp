@@ -4,7 +4,9 @@
   "ignorePaths": ["dist/", "node_modules/", "package-lock.json", "*.json"],
   "words": [
     "chromedp",
+    "codecov",
     "commitlint",
+    "releaserc",
     "humanclick",
     "humantype",
     "instanceid",
