@@ -40,8 +40,40 @@ npm test             # Unit tests (always safe to run)
 npm run test:e2e     # E2E (needs PinchTab on localhost:9867)
 ```
 
+## Commit Convention
+
+We use [Conventional Commits](https://www.conventionalcommits.org/) with semantic-release for automated versioning.
+
+**For production code changes (triggers npm release):**
+- `feat:` — new tool or feature → minor release (1.4.0 → 1.5.0)
+- `fix:` — bug fix → patch release (1.4.0 → 1.4.1)
+
+**For everything else (no release):**
+- `chore(ci):` — CI configuration changes
+- `chore(deps):` — dependency updates
+- `docs:` — documentation changes
+- `test:` — adding or fixing tests
+- `refactor:` — code restructuring without behavior changes
+
+**Important:** Use `feat:` and `fix:` ONLY for production code that needs to be published immediately (changes in `src/` that affect end users). For CI/docs/tooling/tests, use other types.
+
+Examples:
+```bash
+# ✅ Triggers release
+git commit -m "feat: add new screenshot compression tool"
+git commit -m "fix: correct timeout handling in wait_for_selector"
+
+# ❌ No release (use chore/docs instead)
+git commit -m "chore(ci): add spell check to CI workflow"
+git commit -m "docs: update README badges"
+git commit -m "test: add unit tests for config parser"
+```
+
 ## Releasing
 
-1. Update version in `package.json`.
-2. Create a GitHub Release with the version tag (e.g. `v1.1.0`).
-3. CI publishes to npm automatically.
+Releases are fully automated via semantic-release:
+
+1. Push commits to `main` (or merge PR)
+2. CI runs semantic-release to analyze commits
+3. If `feat:` or `fix:` found → creates GitHub Release + publishes to npm
+4. Otherwise → no release triggered
