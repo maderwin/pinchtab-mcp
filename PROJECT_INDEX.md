@@ -1,6 +1,6 @@
 # Project Index: pinchtab-mcp
 
-Generated: 2026-03-06
+Generated: 2026-03-06 (updated)
 
 ## Overview
 
@@ -16,17 +16,19 @@ PinchTab binary is bundled as an npm dependency and launched automatically by th
 pinchtab-mcp/
 ├── src/
 │   ├── index.ts               # Entry point: McpServer setup, signal handlers, main()
+│   ├── instructions.ts        # MCP agent instructions (operating modes, workflow, tips)
 │   ├── config.ts              # Env vars: PINCHTAB_URL, PINCHTAB_TOKEN, PINCHTAB_BIN
-│   ├── utils.ts               # toJson(), toolResult(), toolError() helpers
+│   ├── utils.ts               # isRecord(), toJson(), toolResult(), toolError()
 │   ├── pinchtab/
 │   │   ├── process.ts         # Binary lifecycle: find, start, stop
 │   │   └── client.ts          # HTTP client: pinch(method, path, body?)
 │   ├── tools/
 │   │   ├── index.ts           # registerAllTools(server) — barrel
-│   │   ├── instances.ts       # pinchtab_list_instances, pinchtab_close_tab, pinchtab_health
+│   │   ├── shared.ts          # waitAndSnapshot() — shared by navigation + interaction
+│   │   ├── instances.ts       # pinchtab_list_instances, pinchtab_close_tab, pinchtab_health, pinchtab_cookies
 │   │   ├── navigation.ts      # pinchtab_navigate, pinchtab_snapshot, pinchtab_scroll, pinchtab_wait, pinchtab_wait_for_selector
 │   │   ├── interaction.ts     # pinchtab_click, pinchtab_type, pinchtab_press, pinchtab_hover, pinchtab_focus, pinchtab_select
-│   │   └── content.ts         # pinchtab_get_text, pinchtab_screenshot, pinchtab_eval, pinchtab_pdf, pinchtab_cookies
+│   │   └── content.ts         # pinchtab_get_text, pinchtab_screenshot, pinchtab_eval, pinchtab_pdf
 │   └── __tests__/
 │       ├── config.test.ts
 │       ├── client.test.ts
@@ -78,11 +80,16 @@ pinchtab-mcp/
 ## Core Modules
 
 ### `src/index.ts`
-- Creates `McpServer` instance with name/version/instructions
+- Creates `McpServer` instance with name/version (read from package.json)/instructions
 - Calls `registerAllTools(server)`
 - Connects via `StdioServerTransport`
 - Handles `SIGINT`/`SIGTERM` → calls `cleanup()`
 - Calls `ensurePinchtabRunning()` before connecting
+
+### `src/instructions.ts`
+| Export | Description |
+|--------|-------------|
+| `instructions` | MCP agent instructions string: operating modes, workflow, highlighting, interaction tips, common patterns |
 
 ### `src/config.ts`
 | Export | Default | Description |
@@ -109,6 +116,7 @@ Binary lookup order: `PINCHTAB_BIN` env → `node_modules/.bin/pinchtab` → sys
 ### `src/utils.ts`
 | Export | Description |
 |--------|-------------|
+| `isRecord(value)` | Type guard: checks `typeof === "object" && !== null` |
 | `toJson(value)` | `JSON.stringify(value, undefined, 2)` — uses `undefined` not `null` |
 | `toolResult(data)` | Returns MCP tool success response |
 | `toolError(error)` | Returns MCP tool error response |
@@ -117,6 +125,11 @@ Binary lookup order: `PINCHTAB_BIN` env → `node_modules/.bin/pinchtab` → sys
 | Export | Description |
 |--------|-------------|
 | `registerAllTools(server)` | Registers all 4 tool groups on the McpServer |
+
+### `src/tools/shared.ts`
+| Export | Description |
+|--------|-------------|
+| `waitAndSnapshot(ms)` | Wait `ms` (max 10s), then return compact snapshot. Used by navigate(waitMs) and click(waitMs) |
 
 ---
 
@@ -128,6 +141,7 @@ Binary lookup order: `PINCHTAB_BIN` env → `node_modules/.bin/pinchtab` → sys
 | `pinchtab_list_instances` | `GET /tabs` | List all open browser tabs |
 | `pinchtab_close_tab` | `POST /tab` | Close current or specific tab by ID |
 | `pinchtab_health` | `GET /health` | Check if PinchTab server is running |
+| `pinchtab_cookies` | `GET /cookies` | Get all cookies for the current page |
 
 ### Navigation (`src/tools/navigation.ts`)
 | Tool | PinchTab Route | Description |
@@ -155,7 +169,6 @@ Binary lookup order: `PINCHTAB_BIN` env → `node_modules/.bin/pinchtab` → sys
 | `pinchtab_screenshot` | `GET /screenshot` | Take a page screenshot (base64 JPEG) |
 | `pinchtab_eval` | `POST /evaluate` | Execute JavaScript in page context |
 | `pinchtab_pdf` | `GET /pdf` | Export page as PDF |
-| `pinchtab_cookies` | `GET /cookies` | Get all cookies for the current page |
 
 ---
 
@@ -196,9 +209,10 @@ Binary lookup order: `PINCHTAB_BIN` env → `node_modules/.bin/pinchtab` → sys
 | File | Count | What it tests |
 |------|-------|---------------|
 | `config.test.ts` | 2 | Env var parsing and defaults |
+| `utils.test.ts` | 12 | isRecord, toJson, toolResult, toolError |
 | `client.test.ts` | 10 | HTTP client (JSON/text responses, error handling, auto-start) |
-| `content.test.ts` | 16 | Content tools (text, screenshot, eval, PDF, cookies) |
-| `instances.test.ts` | 11 | Tab listing, close tab, health check |
+| `content.test.ts` | 16 | Content tools (text, screenshot, eval, PDF) |
+| `instances.test.ts` | 11 | Tab listing, close tab, health check, cookies |
 | `interaction.test.ts` | 20 | Click (+ waitMs), type (+ clearFirst), press, hover, focus, select |
 | `navigation.test.ts` | 25 | Navigate (+ waitMs), snapshot, scroll, wait, wait_for_selector |
 | `process.test.ts` | 13 | PinchTab process lifecycle |

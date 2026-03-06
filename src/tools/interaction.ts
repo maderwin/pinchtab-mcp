@@ -2,15 +2,7 @@ import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { pinch } from "../pinchtab/client.js";
 import { toolError, toolResult } from "../utils.js";
-
-const MAX_WAIT_MS = 10_000;
-
-async function waitAndSnapshot(ms: number): Promise<string> {
-  const clamped = Math.min(ms, MAX_WAIT_MS);
-  await new Promise((resolve) => setTimeout(resolve, clamped));
-  const snapshot = await pinch("GET", "/snapshot?format=compact");
-  return typeof snapshot === "string" ? snapshot : JSON.stringify(snapshot, undefined, 2);
-}
+import { waitAndSnapshot } from "./shared.js";
 
 export function registerInteractionTools(server: McpServer) {
   server.registerTool(

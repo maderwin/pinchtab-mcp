@@ -2,22 +2,15 @@ import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { pinch } from "../pinchtab/client.js";
 import { toolError, toolResult } from "../utils.js";
+import { waitAndSnapshot } from "./shared.js";
 
 const DEFAULT_SCROLL_PX = 500;
 const DEFAULT_WAIT_SEC = 3;
 const MAX_WAIT_SEC = 30;
-const MAX_WAIT_MS = 10_000;
 const MIN_WAIT_SEC = 1;
 const SELECTOR_POLL_MS = 500;
 const SELECTOR_TIMEOUT_DEFAULT = 5000;
 const SELECTOR_TIMEOUT_MAX = 15_000;
-
-async function waitAndSnapshot(ms: number): Promise<string> {
-  const clamped = Math.min(ms, MAX_WAIT_MS);
-  await new Promise((resolve) => setTimeout(resolve, clamped));
-  const snapshot = await pinch("GET", "/snapshot?format=compact");
-  return typeof snapshot === "string" ? snapshot : JSON.stringify(snapshot, undefined, 2);
-}
 
 export function registerNavigationTools(server: McpServer) {
   server.registerTool(

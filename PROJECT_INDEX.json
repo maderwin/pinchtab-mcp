@@ -1,15 +1,15 @@
 {
   "project": {
     "name": "pinchtab-mcp",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": "MCP server for PinchTab browser automation — control Chrome via accessibility tree snapshots",
     "license": "MIT",
-    "generated": "2026-03-04",
+    "generated": "2026-03-06",
     "repository": "https://github.com/maderwin/pinchtab-mcp.git"
   },
   "stack": {
     "language": "TypeScript",
-    "runtime": "Node.js >=18",
+    "runtime": "Node.js >=20",
     "module": "ESM",
     "target": "ES2022",
     "moduleResolution": "Node16",
@@ -17,7 +17,8 @@
     "testRunner": "vitest",
     "linter": "oxlint",
     "formatter": "oxfmt",
-    "gitHooks": "lefthook"
+    "gitHooks": "lefthook",
+    "release": "semantic-release"
   },
   "entryPoints": [
     {
@@ -41,7 +42,13 @@
       "name": "index",
       "path": "src/index.ts",
       "exports": ["server", "main"],
-      "purpose": "McpServer setup, tool registration, StdioTransport connect, signal handlers"
+      "purpose": "McpServer setup (version from package.json), tool registration, StdioTransport connect, signal handlers"
+    },
+    {
+      "name": "instructions",
+      "path": "src/instructions.ts",
+      "exports": ["instructions"],
+      "purpose": "MCP agent instructions: operating modes, workflow, highlighting, interaction tips, common patterns"
     },
     {
       "name": "config",
@@ -52,8 +59,8 @@
     {
       "name": "utils",
       "path": "src/utils.ts",
-      "exports": ["toJson"],
-      "purpose": "toJson(value) — JSON.stringify with indent 2, undefined not null"
+      "exports": ["isRecord", "toJson", "toolResult", "toolError"],
+      "purpose": "Pure utilities: type guards, JSON serialization, MCP tool response builders (no project dependencies)"
     },
     {
       "name": "pinchtab/client",
@@ -74,18 +81,24 @@
       "purpose": "Barrel — calls all 4 register* functions"
     },
     {
+      "name": "tools/shared",
+      "path": "src/tools/shared.ts",
+      "exports": ["waitAndSnapshot"],
+      "purpose": "Shared tool helper: wait then return compact snapshot (used by navigate/click waitMs)"
+    },
+    {
       "name": "tools/instances",
       "path": "src/tools/instances.ts",
       "exports": ["registerInstanceTools"],
-      "tools": ["pinchtab_list_instances"],
-      "purpose": "Tab listing via GET /tabs"
+      "tools": ["pinchtab_list_instances", "pinchtab_close_tab", "pinchtab_health", "pinchtab_cookies"],
+      "purpose": "Tab management (list, close), health check, cookies"
     },
     {
       "name": "tools/navigation",
       "path": "src/tools/navigation.ts",
       "exports": ["registerNavigationTools"],
-      "tools": ["pinchtab_navigate", "pinchtab_snapshot", "pinchtab_scroll", "pinchtab_wait"],
-      "purpose": "Page navigation (POST /navigate), accessibility tree snapshots (GET /snapshot), scroll, wait"
+      "tools": ["pinchtab_navigate", "pinchtab_snapshot", "pinchtab_scroll", "pinchtab_wait", "pinchtab_wait_for_selector"],
+      "purpose": "Page navigation, accessibility tree snapshots, scroll, wait, CSS selector polling"
     },
     {
       "name": "tools/interaction",
@@ -99,37 +112,19 @@
       "path": "src/tools/content.ts",
       "exports": ["registerContentTools"],
       "tools": ["pinchtab_get_text", "pinchtab_screenshot", "pinchtab_eval", "pinchtab_pdf"],
-      "purpose": "Content extraction (GET /text), screenshots (GET /screenshot), JS eval (POST /evaluate), PDF (GET /pdf)"
+      "purpose": "Content extraction: text, screenshots, JS eval, PDF export"
     }
   ],
-  "api": {
-    "note": "PinchTab v0.7.x uses flat routes in standalone mode — no instance/tab ID prefix",
-    "routes": {
-      "navigation": { "method": "POST", "path": "/navigate", "body": "{url}" },
-      "text": { "method": "GET", "path": "/text" },
-      "snapshot": { "method": "GET", "path": "/snapshot", "query": "?interactive&format=compact&diff=true" },
-      "screenshot": { "method": "GET", "path": "/screenshot", "response": "{base64}" },
-      "evaluate": { "method": "POST", "path": "/evaluate", "body": "{expression}" },
-      "action": { "method": "POST", "path": "/action", "body": "{kind, ref, ...}" },
-      "tabs": { "method": "GET", "path": "/tabs" },
-      "pdf": { "method": "GET", "path": "/pdf" },
-      "health": { "method": "GET", "path": "/health" }
-    },
-    "actionKinds": ["click", "humanClick", "type", "humanType", "fill", "press", "hover", "focus", "select", "scroll"],
-    "envVars": {
-      "CHROME_BINARY": "Path to browser binary (Yandex, Brave, Edge, etc.)",
-      "BRIDGE_HEADLESS": "Run browser headless (default: true)",
-      "BRIDGE_PORT": "HTTP server port (default: 9867)",
-      "BRIDGE_TOKEN": "API authentication token",
-      "CDP_URL": "WebSocket URL to connect to existing browser"
-    }
-  },
   "tools": [
     { "name": "pinchtab_list_instances", "category": "instances", "file": "src/tools/instances.ts", "route": "GET /tabs" },
+    { "name": "pinchtab_close_tab", "category": "instances", "file": "src/tools/instances.ts", "route": "POST /tab" },
+    { "name": "pinchtab_health", "category": "instances", "file": "src/tools/instances.ts", "route": "GET /health" },
+    { "name": "pinchtab_cookies", "category": "instances", "file": "src/tools/instances.ts", "route": "GET /cookies" },
     { "name": "pinchtab_navigate", "category": "navigation", "file": "src/tools/navigation.ts", "route": "POST /navigate" },
     { "name": "pinchtab_snapshot", "category": "navigation", "file": "src/tools/navigation.ts", "route": "GET /snapshot" },
     { "name": "pinchtab_scroll", "category": "navigation", "file": "src/tools/navigation.ts", "route": "POST /action" },
     { "name": "pinchtab_wait", "category": "navigation", "file": "src/tools/navigation.ts", "route": "local timer" },
+    { "name": "pinchtab_wait_for_selector", "category": "navigation", "file": "src/tools/navigation.ts", "route": "POST /evaluate" },
     { "name": "pinchtab_click", "category": "interaction", "file": "src/tools/interaction.ts", "route": "POST /action" },
     { "name": "pinchtab_type", "category": "interaction", "file": "src/tools/interaction.ts", "route": "POST /action" },
     { "name": "pinchtab_press", "category": "interaction", "file": "src/tools/interaction.ts", "route": "POST /action" },
@@ -146,22 +141,22 @@
       { "path": "src/__tests__/config.test.ts", "covers": "env var parsing and defaults" },
       { "path": "src/__tests__/client.test.ts", "covers": "HTTP client (JSON/text responses, error handling, auto-start)" },
       { "path": "src/__tests__/content.test.ts", "covers": "content tools (text, screenshot, eval, PDF)" },
-      { "path": "src/__tests__/instances.test.ts", "covers": "tab listing tool" },
+      { "path": "src/__tests__/instances.test.ts", "covers": "instance tools (list, close, health, cookies)" },
       { "path": "src/__tests__/interaction.test.ts", "covers": "interaction tools (click, type, press, hover, focus, select)" },
-      { "path": "src/__tests__/navigation.test.ts", "covers": "navigation tools (navigate, snapshot, scroll, wait)" },
+      { "path": "src/__tests__/navigation.test.ts", "covers": "navigation tools (navigate, snapshot, scroll, wait, wait_for_selector)" },
       { "path": "src/__tests__/process.test.ts", "covers": "PinchTab process lifecycle" },
-      { "path": "src/__tests__/registration.test.ts", "covers": "tool registration verification" }
+      { "path": "src/__tests__/registration.test.ts", "covers": "tool registration verification" },
+      { "path": "src/__tests__/utils.test.ts", "covers": "utility functions (toJson, toolResult, toolError, isRecord)" }
     ],
     "e2e": [
-      { "path": "src/__tests__/e2e/browser.test.ts", "covers": "full browser automation (13 tests)", "requires": "PINCHTAB_E2E=1 + live PinchTab on localhost:9867" }
+      { "path": "src/__tests__/e2e/browser.test.ts", "covers": "full browser automation (12 tests)", "requires": "PINCHTAB_E2E=1 + live PinchTab on localhost:9867" }
     ],
+    "totalUnitTests": 111,
+    "totalE2ETests": 12,
     "coverage": {
-      "statements": 95.88,
-      "branches": 89.18,
-      "functions": 100,
-      "lines": 95.88,
-      "unitTests": 57,
-      "e2eTests": 13
+      "statements": "~98%",
+      "branches": "~96%",
+      "functions": "100%"
     },
     "commands": {
       "unit": "npm test",
@@ -171,15 +166,16 @@
     }
   },
   "configuration": [
-    { "file": "tsconfig.json", "purpose": "TypeScript compiler options" },
-    { "file": "rolldown.config.ts", "purpose": "Build bundler config" },
-    { "file": "vitest.config.ts", "purpose": "Unit test runner config" },
-    { "file": "vitest.e2e.config.ts", "purpose": "E2E test runner config" },
-    { "file": "oxlintrc.json", "purpose": "Linter rules (7 plugins, sort-keys, no-null, ESM)" },
-    { "file": "lefthook.yml", "purpose": "Git hooks (pre-commit: lint+fmt, pre-push: tsc+test)" },
-    { "file": ".node-version", "purpose": "Node.js version pin" },
-    { "file": "cspell.json", "purpose": "Spell checker dictionary" },
-    { "file": "commitlint.config.ts", "purpose": "Conventional commit message enforcement" }
+    { "file": "tsconfig.json", "purpose": "TypeScript: strict, ES2022, Node16 module resolution" },
+    { "file": "rolldown.config.ts", "purpose": "Build: bundles src/index.ts → dist/index.js" },
+    { "file": "vitest.config.ts", "purpose": "Unit tests with coverage thresholds (90%+ branches, 95%+ lines)" },
+    { "file": "vitest.e2e.config.ts", "purpose": "E2E tests (PINCHTAB_E2E=1 required)" },
+    { "file": "oxlintrc.json", "purpose": "Linter: 262 rules, 7 plugins, sorted keys, no null, ESM" },
+    { "file": "lefthook.yml", "purpose": "Git hooks: pre-commit (lint+fmt+spell), pre-push (tsc+test), commit-msg (commitlint)" },
+    { "file": ".releaserc.json", "purpose": "semantic-release: commit-analyzer, release-notes, npm, github" },
+    { "file": "commitlint.config.ts", "purpose": "Enforce conventional commits" },
+    { "file": "cspell.json", "purpose": "Spell checking for TS and MD files" },
+    { "file": ".node-version", "purpose": "Node.js version pin" }
   ],
   "dependencies": {
     "runtime": [
@@ -196,6 +192,7 @@
       { "name": "tsx", "version": "^4.19.0", "purpose": "Dev runner" },
       { "name": "lefthook", "version": "^1.10.0", "purpose": "Git hooks" },
       { "name": "cspell", "version": "^8.19.4", "purpose": "Spell checker" },
+      { "name": "semantic-release", "version": "^25.0.3", "purpose": "Automated releases" },
       { "name": "@commitlint/cli", "version": "^19.0.0", "purpose": "Commit linting" }
     ]
   },
@@ -221,5 +218,18 @@
     "tests": "it() not test(), lowercase titles",
     "files": "kebab-case",
     "toolNames": "pinchtab_ prefix, snake_case"
+  },
+  "cicd": {
+    "ci": { "file": ".github/workflows/ci.yml", "trigger": "push/PR to main", "steps": "tsc, lint, test, coverage → Codecov" },
+    "release": { "file": ".github/workflows/release.yml", "trigger": "push to main", "steps": "semantic-release → GitHub Release → npm publish (OIDC)" },
+    "pages": { "file": ".github/workflows/pages.yml", "trigger": "push to main (docs/)", "steps": "Deploy docs/ to GitHub Pages" }
+  },
+  "stats": {
+    "sourceLines": 1680,
+    "testLines": 1690,
+    "totalFiles": 22,
+    "sourceFiles": 13,
+    "testFiles": 9,
+    "mcpTools": 19
   }
 }
